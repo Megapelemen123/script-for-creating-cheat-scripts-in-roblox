@@ -1,1 +1,304 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
 
+local function createExplorerUI()
+    local screenGui = Instance.new("ScreenGui", PlayerGui)
+    screenGui.Name = "ModelExplorer"
+    screenGui.ResetOnSpawn = false
+
+    -- Кнопка открытия меню
+    local openButton = Instance.new("TextButton", screenGui)
+    openButton.Size = UDim2.new(0, 160, 0, 40)
+    openButton.Position = UDim2.new(0, 20, 0, 80)
+    openButton.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    openButton.TextColor3 = Color3.new(1, 1, 1)
+    openButton.Font = Enum.Font.SourceSansBold
+    openButton.TextSize = 18
+    openButton.Text = "Инфо об игре ▶"
+
+    -- Фрейм интерфейса
+    local explorerFrame = Instance.new("Frame", screenGui)
+    explorerFrame.Size = UDim2.new(0, 500, 0, 500)
+    explorerFrame.Position = UDim2.new(0, 200, 0, 100)
+    explorerFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    explorerFrame.Visible = false
+    explorerFrame.Active = true
+    explorerFrame.Draggable = true
+
+    -- Заголовок
+    local title = Instance.new("TextLabel", explorerFrame)
+    title.Size = UDim2.new(1, -70, 0, 30)
+    title.Position = UDim2.new(0, 10, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = "Объекты в игре"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 20
+    title.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Кнопка закрытия
+    local closeBtn = Instance.new("TextButton", explorerFrame)
+    closeBtn.Size = UDim2.new(0, 25, 0, 25)
+    closeBtn.Position = UDim2.new(1, -35, 0, 5)
+    closeBtn.Text = "X"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.TextSize = 16
+
+    -- Скроллинг для объектов
+    local scroll = Instance.new("ScrollingFrame", explorerFrame)
+    scroll.Size = UDim2.new(1, -20, 1, -45)
+    scroll.Position = UDim2.new(0, 10, 0, 40)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 8
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+    -- Обводка модели
+    local highlight = nil
+
+    -- Функция подсветки модели
+    local function highlightModel(model)
+        if highlight then
+            highlight:Destroy()
+        end
+
+        highlight = Instance.new("Highlight")
+        highlight.Parent = model
+        highlight.Adornee = model
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineTransparency = 0
+    end
+
+    -- Функция для получения полного пути к объекту
+    local function getFullPath(obj)
+        local path = obj.Name
+        local parent = obj.Parent
+        while parent and parent ~= game do
+            path = parent.Name .. "." .. path
+            parent = parent.Parent
+        end
+        return path
+    end
+
+    -- Функция обновления списка объектов
+    local function updateExplorer()
+        scroll:ClearAllChildren()
+        local y = 0
+
+        -- Перебор всех объектов в Workspace
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                local path = getFullPath(obj)
+
+                -- Фрейм для каждого объекта
+                local itemFrame = Instance.new("Frame", scroll)
+                itemFrame.Size = UDim2.new(1, 0, 0, 60)
+                itemFrame.Position = UDim2.new(0, 0, 0, y)
+                itemFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+
+                -- Имя объекта
+                local nameLabel = Instance.new("TextLabel", itemFrame)
+                nameLabel.Size = UDim2.new(1, -100, 0, 30)
+                nameLabel.Position = UDim2.new(0, 10, 0, 5)
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.Text = "🧱 " .. path
+                nameLabel.TextColor3 = Color3.new(1, 1, 1)
+                nameLabel.Font = Enum.Font.SourceSans
+                nameLabel.TextSize = 16
+                nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+                -- Кнопка телепортации
+                local tpButton = Instance.new("TextButton", itemFrame)
+                tpButton.Size = UDim2.new(0, 80, 0, 25)
+                tpButton.Position = UDim2.new(1, -90, 0, 30)
+                tpButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+                tpButton.TextColor3 = Color3.new(1, 1, 1)
+                tpButton.Font = Enum.Font.SourceSansBold
+                tpButton.TextSize = 14
+                tpButton.Text = "Телепорт"
+
+                -- Кнопка подсветки
+                local highlightButton = Instance.new("TextButton", itemFrame)
+                highlightButton.Size = UDim2.new(0, 80, 0, 25)
+                highlightButton.Position = UDim2.new(1, -180, 0, 30)
+                highlightButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+                highlightButton.TextColor3 = Color3.new(1, 1, 1)
+                highlightButton.Font = Enum.Font.SourceSansBold
+                highlightButton.TextSize = 14
+                highlightButton.Text = "Обводка"
+
+                -- Телепортация к модели
+                tpButton.MouseButton1Click:Connect(function()
+                    local character = LocalPlayer.Character
+                    if obj.PrimaryPart and character and character:FindFirstChild("HumanoidRootPart") then
+                        character.HumanoidRootPart.CFrame = obj.PrimaryPart.CFrame + Vector3.new(2, 0, 0)
+                    end
+                end)
+
+                -- Включение подсветки
+                highlightButton.MouseButton1Click:Connect(function()
+                    highlightModel(obj)
+                end)
+
+                y = y + 65
+            end
+        end
+        scroll.CanvasSize = UDim2.new(0, 0, 0, y)
+    end
+
+    -- Открытие меню
+    openButton.MouseButton1Click:Connect(function()
+        explorerFrame.Visible = not explorerFrame.Visible
+        if explorerFrame.Visible then
+            updateExplorer()
+        end
+    end)
+
+    -- Закрытие меню
+    closeBtn.MouseButton1Click:Connect(function()
+        explorerFrame.Visible = false
+    end)
+end
+
+createExplorerUI()
+--!strict
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
+
+-- UI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ModelExplorerUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- Open button
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.new(0, 140, 0, 40)
+openButton.Position = UDim2.new(0, 10, 0, 10)
+openButton.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+openButton.TextColor3 = Color3.new(1, 1, 1)
+openButton.Font = Enum.Font.SourceSansBold
+openButton.TextSize = 18
+openButton.Text = "Модели / Игроки"
+openButton.Parent = screenGui
+
+-- Main frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 500, 0, 400)
+mainFrame.Position = UDim2.new(0, 160, 0, 20)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
+mainFrame.Visible = false
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Модели в игре / Игроки"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = mainFrame
+
+-- Close button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 16
+closeBtn.Parent = mainFrame
+
+-- Scroll frame
+local contentScroll = Instance.new("ScrollingFrame")
+contentScroll.Size = UDim2.new(1, -20, 1, -50)
+contentScroll.Position = UDim2.new(0, 10, 0, 40)
+contentScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+contentScroll.ScrollBarThickness = 8
+contentScroll.BackgroundTransparency = 1
+contentScroll.Parent = mainFrame
+
+-- Player avatars with teleport
+local function updatePlayers()
+	for _, v in contentScroll:GetChildren() do
+		if v:IsA("Frame") then
+			v:Destroy()
+		end
+	end
+
+	local y = 0
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.new(1, 0, 0, 60)
+			frame.Position = UDim2.new(0, 0, 0, y)
+			frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+			frame.Parent = contentScroll
+
+			local avatar = Instance.new("ImageLabel")
+			avatar.Size = UDim2.new(0, 50, 0, 50)
+			avatar.Position = UDim2.new(0, 5, 0, 5)
+			avatar.BackgroundTransparency = 1
+			avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=420&height=420&format=png"
+			avatar.Parent = frame
+
+			local nameLabel = Instance.new("TextLabel")
+			nameLabel.Size = UDim2.new(0, 200, 0, 20)
+			nameLabel.Position = UDim2.new(0, 60, 0, 5)
+			nameLabel.BackgroundTransparency = 1
+			nameLabel.Text = player.Name
+			nameLabel.TextColor3 = Color3.new(1, 1, 1)
+			nameLabel.Font = Enum.Font.SourceSansBold
+			nameLabel.TextSize = 16
+			nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+			nameLabel.Parent = frame
+
+			local tpBtn = Instance.new("TextButton")
+			tpBtn.Size = UDim2.new(0, 80, 0, 25)
+			tpBtn.Position = UDim2.new(1, -90, 0, 18)
+			tpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+			tpBtn.Text = "Телепорт"
+			tpBtn.TextColor3 = Color3.new(1, 1, 1)
+			tpBtn.Font = Enum.Font.SourceSansBold
+			tpBtn.TextSize = 14
+			tpBtn.Parent = frame
+
+			tpBtn.MouseButton1Click:Connect(function()
+				if LocalPlayer.Character and player.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("HumanoidRootPart") then
+					LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame + Vector3.new(2, 0, 0)
+				end
+			end)
+
+			y += 65
+		end
+	end
+	contentScroll.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+openButton.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
+	if mainFrame.Visible then
+		updatePlayers()
+	end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+	mainFrame.Visible = false
+end)
+
+Players.PlayerAdded:Connect(updatePlayers)
+Players.PlayerRemoving:Connect(updatePlayers)
+updatePlayers()
