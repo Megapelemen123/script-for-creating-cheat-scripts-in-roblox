@@ -1,0 +1,6 @@
+print("Скрипт запущен!")
+
+local part = Instance.new("Part", workspace)
+part.Position = Vector3.new(0, 10, 0)
+part.Anchored = true
+part.Size = Vector3.new(10,1,10)
